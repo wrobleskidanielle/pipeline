@@ -51,7 +51,7 @@ type LoadBalancerTemplate struct {
 	InboundNATPoolName     string
 }
 
-func (f LoadBalancerFactory) Make(publicIPAddressIDProvider IDProvider) LoadBalancer {
+func (f LoadBalancerFactory) Make(publicIPAddressIDProvider ResourceIDProvider) LoadBalancer {
 	bap := BackendAddressPool{
 		Name: f.Template.BackendAddressPoolName,
 	}
@@ -112,7 +112,7 @@ type RoleAssignmentTemplate struct {
 	RoleName string
 }
 
-func (f RoleAssignmentsFactory) Make(vmssPrincipalIDProvider IDByNameProvider) []RoleAssignment {
+func (f RoleAssignmentsFactory) Make(vmssPrincipalIDProvider ResourceIDByNameProvider) []RoleAssignment {
 	ras := make([]RoleAssignment, len(f.Templates))
 	for i, ra := range f.Templates {
 		ras[i] = RoleAssignment{
@@ -146,11 +146,11 @@ type VirtualMachineScaleSetTemplate struct {
 }
 
 func (f VirtualMachineScaleSetsFactory) Make(
-	backendAddressPoolIDProvider IDByNameProvider,
-	inboundNATPoolIDProvider IDByNameProvider,
+	backendAddressPoolIDProvider ResourceIDByNameProvider,
+	inboundNATPoolIDProvider ResourceIDByNameProvider,
 	publicIPAddressProvider IPAddressProvider,
-	securityGroupIDProvider IDByNameProvider,
-	subnetIDProvider IDByNameProvider,
+	securityGroupIDProvider ResourceIDByNameProvider,
+	subnetIDProvider ResourceIDByNameProvider,
 ) []VirtualMachineScaleSet {
 	publicIPAddress := publicIPAddressProvider.Get()
 	sss := make([]VirtualMachineScaleSet, len(f.Templates))
@@ -197,7 +197,7 @@ type SubnetTemplate struct {
 	NetworkSecurityGroupName string
 }
 
-func (f SubnetFactory) Make(routeTableIDProvider IDProvider, securityGroupIDProvider IDByNameProvider) Subnet {
+func (f SubnetFactory) Make(routeTableIDProvider ResourceIDProvider, securityGroupIDProvider ResourceIDByNameProvider) Subnet {
 	return Subnet{
 		Name:                   f.Template.Name,
 		CIDR:                   f.Template.CIDR,
@@ -206,7 +206,7 @@ func (f SubnetFactory) Make(routeTableIDProvider IDProvider, securityGroupIDProv
 	}
 }
 
-func (f VirtualNetworkFactory) Make(routeTableIDProvider IDProvider, securityGroupIDProvider IDByNameProvider) VirtualNetwork {
+func (f VirtualNetworkFactory) Make(routeTableIDProvider ResourceIDProvider, securityGroupIDProvider ResourceIDByNameProvider) VirtualNetwork {
 	subnets := make([]Subnet, len(f.Template.Subnets))
 	for i, s := range f.Template.Subnets {
 		subnets[i] = SubnetFactory{s}.Make(routeTableIDProvider, securityGroupIDProvider)
@@ -217,18 +217,6 @@ func (f VirtualNetworkFactory) Make(routeTableIDProvider IDProvider, securityGro
 		Location: f.Template.Location,
 		Subnets:  subnets,
 	}
-}
-
-type IDProvider interface {
-	Get() string
-}
-
-type IDByNameProvider interface {
-	Get(name string) string
-}
-
-type IPAddressProvider interface {
-	Get() string
 }
 
 type backendAddressPoolIDProvider CreateLoadBalancerActivityOutput
