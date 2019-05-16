@@ -53,8 +53,8 @@ func (f nodePoolTemplateFactory) getTemplates(np NodePool) (workflow.VirtualMach
 	userDataScriptTemplate := workerUserDataScriptTemplate
 
 	if np.hasRole(pkgPKE.RoleMaster) {
-		bapn = "backend-address-pool"
-		inpn = "ssh-inbound-nat-pool"
+		bapn = pke.GetBackendAddressPoolName()
+		inpn = pke.GetInboundNATPoolName()
 
 		azureRoleName = "Owner"
 
@@ -113,7 +113,7 @@ func (f nodePoolTemplateFactory) getTemplates(np NodePool) (workflow.VirtualMach
 				"PKEVersion":            pkeVersion,
 				"KubernetesVersion":     f.KubernetesVersion,
 				"PublicAddress":         "<not yet set>",
-				"RouteTableName":        f.ClusterName + "-route-table",
+				"RouteTableName":        pke.GetRouteTableName(f.ClusterName),
 				"SubnetName":            np.Subnet.Name,
 				"TenantID":              f.TenantID,
 				"VnetName":              f.VirtualNetworkName,
