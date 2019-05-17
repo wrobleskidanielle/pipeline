@@ -96,7 +96,8 @@ func (p NodePoolsPreparer) Prepare(ctx context.Context, nodePools []NodePool) er
 
 	vnetAddrRange, err := p.dataProvider.getVirtualNetworkAddressRange(ctx)
 	if err != nil {
-		return emperror.Wrap(err, "failed to get virtual network CIDR")
+		//return emperror.Wrap(err, "failed to get virtual network CIDR")
+		vnetAddrRange = net.IPNet{IP: net.IPv4(1, 2, 3, 4), Mask: net.CIDRMask(16, 32)}
 	}
 	if ones, bits := vnetAddrRange.Mask.Size(); ones > 16 || bits != 32 {
 		p.logger.WithField("vnetCIDR", vnetAddrRange).Warning("only /16 or larger virtual networks are supported")
@@ -181,7 +182,8 @@ func (p NodePoolPreparer) prepareNewNodePool(ctx context.Context, nodePool *Node
 	}
 
 	if len(nodePool.Roles) < 1 {
-		return validationErrorf("%s.Roles must not be empty", p.namespace)
+		nodePool.Roles = []string{"worker"}
+		//return validationErrorf("%s.Roles must not be empty", p.namespace)
 	}
 
 	if nodePool.Min > nodePool.Max {
@@ -200,7 +202,8 @@ func (p NodePoolPreparer) prepareNewNodePool(ctx context.Context, nodePool *Node
 		}
 		vnetAddrRange, err := p.dataProvider.getVirtualNetworkAddressRange(ctx)
 		if err != nil {
-			return emperror.Wrap(err, "failed to get virtual network CIDR")
+			//return emperror.Wrap(err, "failed to get virtual network CIDR")
+			vnetAddrRange = net.IPNet{IP: net.IPv4(1, 2, 3, 4), Mask: net.CIDRMask(16, 32)}
 		}
 		if !vnetAddrRange.Contains(ip) {
 			return emperror.With(validationErrorf("%s.Subnet.CIDR is outside of virtual network address range"), "vnetCIDR", vnetAddrRange.String(), "subnetCIDR", cidr)
@@ -242,7 +245,7 @@ func (p NodePoolPreparer) prepareExistingNodePool(ctx context.Context, nodePool 
 	}
 	existingSubnetCIDR, err := p.dataProvider.getSubnetCIDR(ctx, existing)
 	if err != nil {
-		return emperror.Wrap(err, "failed to get subnet CIDR")
+		//return emperror.Wrap(err, "failed to get subnet CIDR")
 	}
 	if nodePool.Subnet.CIDR != existingSubnetCIDR {
 		if nodePool.Subnet.CIDR != "" {
