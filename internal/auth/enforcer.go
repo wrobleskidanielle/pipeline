@@ -15,7 +15,7 @@
 package auth
 
 import (
-	"strconv"
+	"fmt"
 	"strings"
 
 	"emperror.dev/emperror"
@@ -37,19 +37,20 @@ func (e *basicEnforcer) Enforce(org *auth.Organization, user *auth.User, path, m
 		return true, nil
 	}
 
+	// is virtual user
 	if user.ID == 0 {
 		if strings.HasPrefix(user.Login, "clusters/") {
 			segments := strings.Split(user.Login, "/")
-			if len(segments) < 2 {
+			if len(segments) < 3 {
 				return false, nil
 			}
 
-			orgID, err := strconv.Atoi(segments[1])
-			if err != nil {
-				return false, emperror.Wrap(err, "failed to parse user token")
-			}
+			orgID := segments[1]
+			clusterID := segments[2]
 
-			return org.ID == uint(orgID), nil
+			searchPath := fmt.Sprintf("/orgs/%s/clusters/%s", orgID, clusterID)
+
+			return strings.Contains(path, searchPath+"/") || strings.HasSuffix(path, searchPath), nil
 		}
 
 		orgName := auth.GetOrgNameFromVirtualUser(user.Login)

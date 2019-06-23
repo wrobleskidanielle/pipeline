@@ -64,9 +64,11 @@ func TestAccessManager_DefaultPolicies(t *testing.T) {
 
 	user1 := newUser(t, db, 1, "user1")
 	user2 := newUser(t, db, 2, "user2")
+	userOrg1Virtual := &auth.User{Login: "org1/test"}
+	userCluster1Virtual := &auth.User{Login: "clusters/1/1"}
 
-	org1 := newOrg(t, db, 1, "user1")
-	org2 := newOrg(t, db, 1, "user2")
+	org1 := newOrg(t, db, 1, "org1")
+	org2 := newOrg(t, db, 2, "org2")
 
 	addUserToOrg(t, db, user2, org2)
 
@@ -137,6 +139,34 @@ func TestAccessManager_DefaultPolicies(t *testing.T) {
 			path:           "/api/v1/allowed/secrets",
 			method:         http.MethodGet,
 			expectedResult: true,
+		},
+		{
+			org:            org1,
+			user:           userOrg1Virtual,
+			path:           "/api/v1/orgs/1/secrets",
+			method:         http.MethodGet,
+			expectedResult: true,
+		},
+		{
+			org:            org2,
+			user:           userOrg1Virtual,
+			path:           "/api/v1/orgs/2/secrets",
+			method:         http.MethodGet,
+			expectedResult: false,
+		},
+		{
+			org:            org1,
+			user:           userCluster1Virtual,
+			path:           "/api/v1/orgs/1/clusters/1",
+			method:         http.MethodGet,
+			expectedResult: true,
+		},
+		{
+			org:            org2,
+			user:           userCluster1Virtual,
+			path:           "/api/v1/orgs/2/clusters/1",
+			method:         http.MethodGet,
+			expectedResult: false,
 		},
 	}
 
