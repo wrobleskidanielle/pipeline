@@ -463,12 +463,32 @@ func GetTokens(c *gin.Context) {
 		tokens, err := TokenStore.List(currentUser.IDString())
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, err)
-		} else {
-			for _, token := range tokens {
-				token.Value = ""
-			}
-			c.JSON(http.StatusOK, tokens)
 		}
+
+		var organizations []Organization
+
+		err = Auth.GetDB(c.Request).
+			Model(currentUser).
+			Related(&organizations, "Organizations").Error
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, err)
+		}
+
+		for _, org := range organizations {
+			orgTokens, err := TokenStore.List(org.Name)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, err)
+			}
+
+			tokens = append(tokens, orgTokens...)
+		}
+
+		for _, token := range tokens {
+			token.Value = ""
+		}
+
+		c.JSON(http.StatusOK, tokens)
+
 	} else {
 		token, err := TokenStore.Lookup(currentUser.IDString(), tokenID)
 		if err != nil {
