@@ -219,7 +219,7 @@ func newOIDCProvider(config *OIDCConfig) *OIDCProvider {
 
 			// Check if authInfo exists with the backend connector already
 			authInfo.Provider = claims.FederatedClaims["connector_id"]
-			authInfo.UID = claims.FederatedClaims["user_id"]
+			authInfo.UID = claims.FederatedClaims["user_id"] // this has to be migrated in db to use logins on Beta
 
 			if !tx.Model(authIdentity).Where(authInfo).Scan(&authInfo).RecordNotFound() {
 				return authInfo.ToClaims(), nil

@@ -89,7 +89,7 @@ func getGitlabUserMeta(schema *auth.Schema) (*gitlabUserMeta, error) {
 	}
 
 	if err := mapstructure.Decode(schema.RawInfo, &dexClaims); err != nil {
-		return nil, nil
+		return nil, err
 	}
 
 	gitlabUserID := cast.ToInt64(dexClaims.FederatedClaims["user_id"])

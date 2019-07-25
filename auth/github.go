@@ -24,8 +24,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 	"github.com/qor/auth"
-	"github.com/spf13/cast"
-	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
 )
 
@@ -78,25 +76,18 @@ func NewGithubClientForUser(userID uint) (*github.Client, error) {
 }
 
 func getGithubUserMeta(schema *auth.Schema) (*githubUserMeta, error) {
-	githubClient := NewGithubClient(viper.GetString("github.token"))
-
 	var dexClaims struct {
 		FederatedClaims map[string]string
 	}
 
 	if err := mapstructure.Decode(schema.RawInfo, &dexClaims); err != nil {
-		return nil, nil
-	}
-
-	githubUserID := cast.ToInt64(dexClaims.FederatedClaims["user_id"])
-
-	githubUser, _, err := githubClient.Users.GetByID(context.Background(), githubUserID)
-	if err != nil {
 		return nil, err
 	}
 
+	userLogin := dexClaims.FederatedClaims["user_id"]
+
 	return &githubUserMeta{
-		Login:     *githubUser.Login,
-		AvatarURL: githubUser.GetAvatarURL(),
+		Login:     userLogin,
+		AvatarURL: fmt.Sprintf("https://github.com/%s.png", userLogin),
 	}, nil
 }
