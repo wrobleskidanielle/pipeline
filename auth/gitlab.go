@@ -23,7 +23,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 	"github.com/qor/auth"
-	"github.com/spf13/cast"
 	"github.com/spf13/viper"
 	"github.com/xanzy/go-gitlab"
 )
@@ -79,11 +78,6 @@ func GetUserGitlabToken(userID uint) (string, error) {
 }
 
 func getGitlabUserMeta(schema *auth.Schema) (*gitlabUserMeta, error) {
-	gitlabClient, err := NewGitlabClient("")
-	if err != nil {
-		return nil, err
-	}
-
 	var dexClaims struct {
 		FederatedClaims map[string]string
 	}
@@ -92,15 +86,10 @@ func getGitlabUserMeta(schema *auth.Schema) (*gitlabUserMeta, error) {
 		return nil, err
 	}
 
-	gitlabUserID := cast.ToInt64(dexClaims.FederatedClaims["user_id"])
-
-	gitlabUser, _, err := gitlabClient.Users.GetUser(int(gitlabUserID), nil)
-	if err != nil {
-		return nil, err
-	}
+	gitlabUserID := dexClaims.FederatedClaims["user_id"]
 
 	return &gitlabUserMeta{
-		Username:  gitlabUser.Username,
-		AvatarURL: gitlabUser.AvatarURL,
+		Username:  gitlabUserID,
+		// AvatarURL: gitlabUser.AvatarURL,
 	}, nil
 }
