@@ -89,7 +89,7 @@ func getGitlabUserMeta(schema *auth.Schema) (*gitlabUserMeta, error) {
 	gitlabUserID := dexClaims.FederatedClaims["user_id"]
 
 	return &gitlabUserMeta{
-		Username:  gitlabUserID,
-		// AvatarURL: gitlabUser.AvatarURL,
+		Username: gitlabUserID,
+		// AvatarURL: gitlabUser.AvatarURL, TODO we need to find a way to get the URL
 	}, nil
 }
