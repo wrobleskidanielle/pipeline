@@ -15,7 +15,6 @@
 package auth
 
 import (
-	"context"
 	"fmt"
 	"time"
 
