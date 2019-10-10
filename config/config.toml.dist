@@ -257,3 +257,7 @@ chartVersion="6.8.3"
 [prometheusPushgateway]
 chart="stable/prometheus-pushgateway"
 chartVersion="1.0.1"
+
+[feature.logging]
+chart="banzaicloud-stable/logging-operator"
+chartVersion="2.1.1"

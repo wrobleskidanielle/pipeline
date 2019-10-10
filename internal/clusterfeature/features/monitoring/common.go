@@ -23,6 +23,7 @@ const (
 	prometheusOperatorReleaseName    = "monitor"
 	prometheusPushgatewayReleaseName = "pushgateway"
 	grafanaSecretTag                 = "app:grafana"
+
 	kubePrometheusSecretName         = "prometheus-basic-auth"
 	prometheusSecretUserName         = "prometheus"
 	alertManagerProviderConfigName   = "pipeline-monitoring-feature-providers"

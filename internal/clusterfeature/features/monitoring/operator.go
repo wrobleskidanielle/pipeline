@@ -20,15 +20,12 @@ import (
 	"fmt"
 
 	"emperror.dev/errors"
-	v1 "k8s.io/api/core/v1"
-
 	"github.com/banzaicloud/pipeline/auth"
 	pkgCluster "github.com/banzaicloud/pipeline/cluster"
 	"github.com/banzaicloud/pipeline/internal/clusterfeature"
 	"github.com/banzaicloud/pipeline/internal/clusterfeature/clusterfeatureadapter"
 	"github.com/banzaicloud/pipeline/internal/clusterfeature/features"
 	"github.com/banzaicloud/pipeline/internal/common"
-	pkgCommon "github.com/banzaicloud/pipeline/pkg/common"
 	pkgSecret "github.com/banzaicloud/pipeline/pkg/secret"
 	"github.com/banzaicloud/pipeline/secret"
 )
@@ -38,6 +35,7 @@ type FeatureOperator struct {
 	clusterGetter  clusterfeatureadapter.ClusterGetter
 	clusterService clusterfeature.ClusterService
 	helmService    features.HelmService
+	grafanaService features.GrafanaSecretService
 	config         Configuration
 	logger         common.Logger
 	secretStore    features.SecretStore
@@ -52,11 +50,17 @@ func MakeFeatureOperator(
 	logger common.Logger,
 	secretStore features.SecretStore,
 ) FeatureOperator {
+	grafanaService := features.NewGrafanaSecretService(
+		config.grafanaAdminUsername,
+		secretStore,
+		logger,
+	)
 	return FeatureOperator{
 		clusterGetter:  clusterGetter,
 		clusterService: clusterService,
 		helmService:    helmService,
 		config:         config,
+		grafanaService: grafanaService,
 		logger:         logger,
 		secretStore:    secretStore,
 	}
@@ -198,8 +202,10 @@ func (op FeatureOperator) installPrometheusPushGateway(
 	cluster clusterfeatureadapter.Cluster,
 	logger common.Logger,
 ) error {
-	headNodeAffinity := GetHeadNodeAffinity(cluster, op.config)
-	tolerations := GetHeadNodeTolerations(op.config)
+	var tolerationService = features.NewTolerationService(op.config.headNodepoolName)
+	var affinityService = features.NewAffinityService(op.config.headNodepoolName, cluster)
+	headNodeAffinity := affinityService.GetHeadNodeAffinity()
+	tolerations := tolerationService.GetHeadNodeTolerations()
 
 	pipelineSystemNamespace := op.config.pipelineSystemNamespace
 	var chartValues = &prometheusPushgatewayValues{
@@ -245,8 +251,10 @@ func (op FeatureOperator) installPrometheusOperator(
 		grafanaPass = grafanaSecret[pkgSecret.Password]
 	}
 
-	headNodeAffinity := GetHeadNodeAffinity(cluster, op.config)
-	tolerations := GetHeadNodeTolerations(op.config)
+	var tolerationService = features.NewTolerationService(op.config.headNodepoolName)
+	var affinityService = features.NewAffinityService(op.config.headNodepoolName, cluster)
+	headNodeAffinity := affinityService.GetHeadNodeAffinity()
+	tolerations := tolerationService.GetHeadNodeTolerations()
 
 	// create chart values
 	pipelineSystemNamespace := op.config.pipelineSystemNamespace
@@ -346,39 +354,20 @@ func (op FeatureOperator) generateGrafanaSecret(
 	clusterUidSecretTag := getClusterUIDSecretTag(cluster.GetUID())
 	releaseSecretTag := getReleaseSecretTag()
 
-	// Generating Grafana credentials
-	username := op.config.grafanaAdminUsername
-	password, err := secret.RandomString("randAlphaNum", 12)
-	if err != nil {
-		return "", errors.WrapIf(err, "failed to generate Grafana admin user password")
-	}
-
-	grafanaSecretRequest := secret.CreateSecretRequest{
-		Name: getGrafanaSecretName(cluster.GetID()),
-		Type: pkgSecret.PasswordSecretType,
-		Values: map[string]string{
-			pkgSecret.Username: username,
-			pkgSecret.Password: password,
-		},
-		Tags: []string{
+	return op.grafanaService.GenerateSecret(
+		ctx,
+		cluster.GetID(),
+		cluster.GetOrganizationId(),
+		[]string{
 			clusterNameSecretTag,
 			clusterUidSecretTag,
-			pkgSecret.TagBanzaiReadonly,
 			releaseSecretTag,
-			grafanaSecretTag,
 		},
-	}
-	grafanaSecretID, err := secret.Store.CreateOrUpdate(cluster.GetOrganizationId(), &grafanaSecretRequest)
-	if err != nil {
-		return "", errors.WrapIf(err, "error store prometheus secret")
-	}
-	logger.Debug("grafana secret stored")
-
-	return grafanaSecretID, nil
+	)
 }
 
 func (op FeatureOperator) deleteGrafanaSecret(ctx context.Context, clusterID uint) error {
-	secretID, err := op.secretStore.GetIDByName(ctx, getGrafanaSecretName(clusterID))
+	secretID, err := op.secretStore.GetIDByName(ctx, op.grafanaService.GetGrafanaSecretName(clusterID))
 	if err != nil {
 		return errors.WrapIf(err, "failed to get Grafana secret")
 	}
@@ -450,7 +439,7 @@ func (op FeatureOperator) getGrafanaSecret(
 	var secretID = spec.Grafana.SecretId
 	if secretID == "" {
 		// check Grafana secret exists
-		existingSecretID, err := op.secretStore.GetIDByName(ctx, getGrafanaSecretName(cluster.GetID()))
+		existingSecretID, err := op.secretStore.GetIDByName(ctx, op.grafanaService.GetGrafanaSecretName(cluster.GetID()))
 		if existingSecretID != "" {
 			logger.Debug("Grafana secret already exists")
 			return existingSecretID, nil
@@ -576,50 +565,4 @@ func isSecretNotFoundError(err error) bool {
 		return true
 	}
 	return false
-}
-
-func GetHeadNodeAffinity(cluster interface {
-	NodePoolExists(nodePoolName string) bool
-}, config Configuration) v1.Affinity {
-	headNodePoolName := config.headNodepoolName
-	if headNodePoolName == "" {
-		return v1.Affinity{}
-	}
-	if !cluster.NodePoolExists(headNodePoolName) {
-		return v1.Affinity{}
-	}
-	return v1.Affinity{
-		NodeAffinity: &v1.NodeAffinity{
-			PreferredDuringSchedulingIgnoredDuringExecution: []v1.PreferredSchedulingTerm{
-				{
-					Weight: 100,
-					Preference: v1.NodeSelectorTerm{
-						MatchExpressions: []v1.NodeSelectorRequirement{
-							{
-								Key:      pkgCommon.LabelKey,
-								Operator: v1.NodeSelectorOpIn,
-								Values: []string{
-									headNodePoolName,
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func GetHeadNodeTolerations(config Configuration) []v1.Toleration {
-	headNodePoolName := config.headNodepoolName
-	if headNodePoolName == "" {
-		return []v1.Toleration{}
-	}
-	return []v1.Toleration{
-		{
-			Key:      pkgCommon.NodePoolNameTaintKey,
-			Operator: v1.TolerationOpEqual,
-			Value:    headNodePoolName,
-		},
-	}
 }

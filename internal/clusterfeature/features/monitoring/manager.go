@@ -34,6 +34,7 @@ type FeatureManager struct {
 	secretStore      features.SecretStore
 	endpointsService endpoints.EndpointService
 	helmService      features.HelmService
+	grafanaService   features.GrafanaSecretService
 	config           Configuration
 	logger           common.Logger
 }
@@ -46,12 +47,14 @@ func MakeFeatureManager(
 	config Configuration,
 	logger common.Logger,
 ) FeatureManager {
+	var grafanaService = features.NewGrafanaSecretService(config.grafanaAdminUsername, secretStore, logger)
 	return FeatureManager{
 		clusterGetter:    clusterGetter,
 		secretStore:      secretStore,
 		endpointsService: endpointsService,
 		helmService:      helmService,
 		config:           config,
+		grafanaService:   grafanaService,
 		logger:           logger,
 	}
 }
@@ -108,7 +111,7 @@ func (m FeatureManager) GetOutput(ctx context.Context, clusterID uint, spec clus
 
 	chartVersion := m.config.operator.chartVersion
 	out := clusterfeature.FeatureOutput{
-		"grafana":      m.getComponentOutput(ctx, clusterID, newGrafanaOutputHelper(boundSpec), endpoints, operatorValues),
+		"grafana":      m.getComponentOutput(ctx, clusterID, newGrafanaOutputHelper(boundSpec, m.grafanaService), endpoints, operatorValues),
 		"prometheus":   m.getComponentOutput(ctx, clusterID, newPrometheusOutputHelper(boundSpec), endpoints, operatorValues),
 		"alertmanager": m.getComponentOutput(ctx, clusterID, newAlertmanagerOutputHelper(boundSpec), endpoints, operatorValues),
 		"pushgateway":  m.getPushgatewayOutput(ctx, pushgatewayValues),

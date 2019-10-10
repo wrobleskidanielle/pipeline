@@ -14,12 +14,16 @@
 
 package monitoring
 
+import "github.com/banzaicloud/pipeline/internal/clusterfeature/features"
+
 type outputGrafana struct {
 	baseOutput
+	s features.GrafanaSecretService
 }
 
 func newGrafanaOutputHelper(
 	spec featureSpec,
+	s features.GrafanaSecretService,
 ) outputGrafana {
 	return outputGrafana{
 		baseOutput: baseOutput{
@@ -27,6 +31,7 @@ func newGrafanaOutputHelper(
 			enabled:  spec.Grafana.Enabled,
 			ingress:  spec.Grafana.Public,
 		},
+		s: s,
 	}
 }
 
@@ -42,6 +47,6 @@ func (outputGrafana) getDeploymentValueParentKey() string {
 	return "grafana"
 }
 
-func (outputGrafana) getGeneratedSecretName(clusterID uint) string {
-	return getGrafanaSecretName(clusterID)
+func (o outputGrafana) getGeneratedSecretName(clusterID uint) string {
+	return o.s.GetGrafanaSecretName(clusterID)
 }

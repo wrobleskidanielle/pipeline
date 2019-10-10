@@ -84,6 +84,7 @@ import (
 	"github.com/banzaicloud/pipeline/internal/clusterfeature/clusterfeatureadapter"
 	"github.com/banzaicloud/pipeline/internal/clusterfeature/clusterfeaturedriver"
 	featureDns "github.com/banzaicloud/pipeline/internal/clusterfeature/features/dns"
+	featureLogging "github.com/banzaicloud/pipeline/internal/clusterfeature/features/logging"
 	featureMonitoring "github.com/banzaicloud/pipeline/internal/clusterfeature/features/monitoring"
 	"github.com/banzaicloud/pipeline/internal/clusterfeature/features/securityscan"
 	featureVault "github.com/banzaicloud/pipeline/internal/clusterfeature/features/vault"
@@ -648,11 +649,13 @@ func main() {
 				endpointManager := endpoints.NewEndpointManager(logger)
 				helmService := helm.NewHelmService(helmadapter.NewClusterService(clusterManager), logger)
 				monitoringConfig := featureMonitoring.NewFeatureConfiguration()
+				loggingConfig := featureLogging.NewConfig()
 				featureManagerRegistry := clusterfeature.MakeFeatureManagerRegistry([]clusterfeature.FeatureManager{
 					featureDns.MakeFeatureManager(clusterGetter, logger, orgDomainService),
 					securityscan.MakeFeatureManager(logger),
 					featureVault.MakeFeatureManager(clusterGetter, secretStore, logger),
 					featureMonitoring.MakeFeatureManager(clusterGetter, secretStore, endpointManager, helmService, monitoringConfig, logger),
+					featureLogging.MakeFeatureManager(clusterGetter, loggingConfig, secretStore, helmService, logger),
 				})
 				featureOperationDispatcher := clusterfeatureadapter.MakeCadenceFeatureOperationDispatcher(workflowClient, logger)
 				service := clusterfeature.MakeFeatureService(featureOperationDispatcher, featureManagerRegistry, featureRepository, logger)

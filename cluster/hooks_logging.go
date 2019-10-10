@@ -34,7 +34,7 @@ import (
 
 // InstallLogging to install logging deployment
 func InstallLogging(cluster CommonCluster, param pkgCluster.PostHookParam) error {
-	var releaseTag = fmt.Sprintf("release:%s", pipConfig.LoggingReleaseName)
+	var releaseTag = fmt.Sprintf("release:%s", pipConfig.LoggingOperatorReleaseName)
 
 	var loggingParam pkgCluster.LoggingParam
 	err := castToPostHookParam(&param, &loggingParam)
@@ -110,7 +110,7 @@ func InstallLogging(cluster CommonCluster, param pkgCluster.PostHookParam) error
 	}
 
 	chartVersion := viper.GetString(pipConfig.LoggingOperatorChartVersion)
-	err = installDeployment(cluster, namespace, pkgHelm.BanzaiRepository+"/logging-operator", pipConfig.LoggingReleaseName, operatorYamlValues, chartVersion, true)
+	err = installDeployment(cluster, namespace, pkgHelm.BanzaiRepository+"/logging-operator", pipConfig.LoggingOperatorReleaseName, operatorYamlValues, chartVersion, true)
 	if err != nil {
 		return emperror.Wrap(err, "install logging-operator failed")
 	}
@@ -125,7 +125,7 @@ func InstallLogging(cluster CommonCluster, param pkgCluster.PostHookParam) error
 	if err != nil {
 		return err
 	}
-	err = installDeployment(cluster, namespace, pkgHelm.BanzaiRepository+"/logging-operator-fluent", pipConfig.LoggingReleaseName+"-fluent", operatorFluentYamlValues, chartVersion, true)
+	err = installDeployment(cluster, namespace, pkgHelm.BanzaiRepository+"/logging-operator-fluent", pipConfig.LoggingOperatorReleaseName+"-fluent", operatorFluentYamlValues, chartVersion, true)
 	if err != nil {
 		return emperror.Wrap(err, "install logging-operator-fluent failed")
 	}
