@@ -220,6 +220,7 @@ func init() {
 	viper.SetDefault("helm.tillerVersion", "v2.14.2")
 	viper.SetDefault("helm.stableRepositoryURL", "https://kubernetes-charts.storage.googleapis.com")
 	viper.SetDefault("helm.banzaiRepositoryURL", "https://kubernetes-charts.banzaicloud.com")
+	viper.SetDefault("helm.lokiRepositoryURL", "https://grafana.github.io/loki/charts") // todo (colin) use const
 	viper.SetDefault(helmPath, "./orgs")
 	viper.SetDefault(AwsCredentialPath, "secret/data/banzaicloud/aws")
 
