@@ -32,6 +32,7 @@ const (
 	secretTag           = "feature:logging"
 	fluentbitSecretName = "logging-operator-fluentbit-secret"
 	fluentdSecretName   = "logging-operator-fluentd-secret"
+	lokiReleaseName     = "loki"
 
 	kubeCaCertKey  = "ca.crt"
 	kubeTlsCertKey = "tls.crt"

@@ -193,6 +193,8 @@ const (
 
 	LoggingOperatorChartKey        = "feature.logging.operator.chart"
 	LoggingOperatorChartVersionKey = "feature.logging.operator.chartVersion"
+	LoggingLokiChartKey            = "feature.logging.loki.chart"
+	LoggingLokiChartVersionKey     = "feature.logging.loki.chartVersion"
 	LoggingChartKey                = "feature.logging.chart"
 	LoggingChartVersionKey         = "feature.logging.chartVersion"
 )
@@ -383,6 +385,8 @@ func init() {
 
 	viper.SetDefault(LoggingOperatorChartKey, "banzaicloud-stable/logging-operator")
 	viper.SetDefault(LoggingOperatorChartVersionKey, "2.1.1")
+	viper.SetDefault(LoggingLokiChartKey, "loki/loki")
+	viper.SetDefault(LoggingLokiChartVersionKey, "0.16.0")
 	viper.SetDefault(LoggingChartKey, "banzaicloud-stable/logging-operator-logging")
 	viper.SetDefault(LoggingChartVersionKey, "2.1.0")
 

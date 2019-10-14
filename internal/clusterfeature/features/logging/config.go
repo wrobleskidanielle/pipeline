@@ -29,6 +29,10 @@ type Configuration struct {
 		chartName    string
 		chartVersion string
 	}
+	loki struct {
+		chartName    string
+		chartVersion string
+	}
 	grafanaAdminUsername string
 	headNodepoolName     string
 }
@@ -49,6 +53,13 @@ func NewConfig() Configuration {
 		}{
 			chartName:    viper.GetString(config.LoggingChartKey),
 			chartVersion: viper.GetString(config.LoggingChartVersionKey),
+		},
+		loki: struct {
+			chartName    string
+			chartVersion string
+		}{
+			chartName:    viper.GetString(config.LoggingLokiChartKey),
+			chartVersion: viper.GetString(config.LoggingLokiChartVersionKey),
 		},
 		grafanaAdminUsername: viper.GetString(config.MonitorGrafanaAdminUserNameKey),
 		headNodepoolName:     viper.GetString(config.PipelineHeadNodePoolName),

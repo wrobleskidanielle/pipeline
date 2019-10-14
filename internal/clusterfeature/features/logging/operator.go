@@ -113,6 +113,13 @@ func (op FeatureOperator) Apply(ctx context.Context, clusterID uint, spec cluste
 		return errors.WrapIf(err, "failed to generate Grafana secret")
 	}
 
+	// install Loki
+	if boundSpec.Loki.Enabled {
+		if err := op.installLoki(ctx, clusterID); err != nil {
+			return errors.WrapIf(err, "failed to install Loki")
+		}
+	}
+
 	// install logging-operator
 	if err := op.installLoggingOperator(ctx, clusterID, cl, logger); err != nil {
 		return errors.WrapIf(err, fmt.Sprintf("failed to install deployment: %q", op.config.operator.chartName))
@@ -139,6 +146,8 @@ func (op FeatureOperator) Deactivate(ctx context.Context, clusterID uint, spec c
 
 	logger := op.logger.WithContext(ctx).WithFields(map[string]interface{}{"cluster": clusterID, "feature": featureName})
 
+	// TODO (colin): remove Loki, warn, what if the user disable Loki and deactivate feature?
+
 	// delete deployment
 	if err := op.helmService.DeleteDeployment(ctx, clusterID, config.LoggingOperatorReleaseName); err != nil {
 		logger.Info(fmt.Sprintf("failed to delete feature deployment: %q", config.LoggingOperatorReleaseName))
@@ -152,6 +161,21 @@ func (op FeatureOperator) Deactivate(ctx context.Context, clusterID uint, spec c
 	}
 
 	return nil
+}
+
+func (op FeatureOperator) installLoki(ctx context.Context, clusterID uint) error {
+	chartName := op.config.loki.chartName
+	chartVersion := op.config.loki.chartVersion
+
+	return op.helmService.ApplyDeployment(
+		ctx,
+		clusterID,
+		op.config.pipelineSystemNamespace,
+		chartName,
+		lokiReleaseName,
+		[]byte{},
+		chartVersion,
+	)
 }
 
 func (op FeatureOperator) installLoggingOperator(ctx context.Context, clusterID uint, cluster clusterfeatureadapter.Cluster, logger common.Logger) error {
@@ -284,7 +308,7 @@ func (op FeatureOperator) installTLSSecretsToCluster(ctx context.Context, cl clu
 func (op FeatureOperator) deleteTLSSecret(ctx context.Context, clusterID uint) error {
 	var secretName = getTLSSecretName(clusterID)
 	secretID, err := op.secretStore.GetIDByName(ctx, secretName)
-	if err != nil {
+	if err != nil && !isSecretNotFoundError(err) {
 		return errors.WrapIf(err, "failed to get TLS secret")
 	}
 

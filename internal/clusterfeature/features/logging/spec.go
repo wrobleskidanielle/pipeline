@@ -24,7 +24,8 @@ import (
 )
 
 type loggingFeatureSpec struct {
-	Grafana       baseComponentSpec `json:"grafana" mapstructure:"grafana"`
+	Grafana baseComponentSpec `json:"grafana" mapstructure:"grafana"`
+	// todo (colin) in case of loki we need public???
 	Loki          baseComponentSpec `json:"loki" mapstructure:"loki"`
 	Settings      settingsSpec      `json:"settings" mapstructure:"settings"`
 	ClusterOutput clusterOutputSpec `json:"clusterOutput" mapstructure:"clusterOutput"`
