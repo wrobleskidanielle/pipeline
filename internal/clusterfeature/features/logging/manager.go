@@ -16,10 +16,8 @@ package logging
 
 import (
 	"context"
-	"fmt"
 
 	"emperror.dev/errors"
-	"github.com/banzaicloud/pipeline/config"
 	"github.com/banzaicloud/pipeline/internal/clusterfeature"
 	"github.com/banzaicloud/pipeline/internal/clusterfeature/clusterfeatureadapter"
 	"github.com/banzaicloud/pipeline/internal/clusterfeature/features"
@@ -76,12 +74,11 @@ func (m FeatureManager) GetOutput(ctx context.Context, clusterID uint, spec clus
 		return nil, errors.WrapIf(err, "failed to get Grafana output")
 	}
 
-	loggingValues, err := m.helmService.GetDeployment(ctx, clusterID, config.LoggingReleaseName)
+	lokiOutput, err := m.getLokiOutput(ctx, boundSpec.Loki, clusterID)
 	if err != nil {
-		return nil, errors.WrapIf(err, "failed to get logging deployment values")
+		// todo (colin): need error???
+		return nil, errors.WrapIf(err, "failed to get Loki output")
 	}
-
-	fmt.Println("log", loggingValues)
 
 	var output = clusterfeature.FeatureOutput{
 		"loggingOperator": obj{
@@ -92,6 +89,7 @@ func (m FeatureManager) GetOutput(ctx context.Context, clusterID uint, spec clus
 		},
 		"tls":     tlsOutput,
 		"grafana": grafanaOutput,
+		"loki":    lokiOutput,
 	}
 	return output, nil
 }
@@ -135,6 +133,24 @@ func (m FeatureManager) getGrafanaOutput(ctx context.Context, spec baseComponent
 	}
 
 	return nil, nil
+}
+
+func (m FeatureManager) getLokiOutput(ctx context.Context, lokiSpec baseComponentSpec, clusterID uint) (obj, error) {
+	var output obj
+	if lokiSpec.Enabled {
+		lokiValues, err := m.helmService.GetDeployment(ctx, clusterID, lokiReleaseName)
+		if err != nil {
+			return nil, errors.WrapIf(err, "failed to get loki deployment values")
+		}
+
+		if image, ok := lokiValues.Values["image"].(map[string]interface{}); ok {
+			output = obj{
+				"version": image["tag"],
+			}
+		}
+	}
+
+	return output, nil
 }
 
 func (m FeatureManager) getTLSOutput(ctx context.Context, clusterID uint, isEnabled bool) (obj, error) {

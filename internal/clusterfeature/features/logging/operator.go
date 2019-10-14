@@ -148,15 +148,22 @@ func (op FeatureOperator) Deactivate(ctx context.Context, clusterID uint, spec c
 
 	// TODO (colin): remove Loki, warn, what if the user disable Loki and deactivate feature?
 
-	// delete deployment
+	// delete logging-operator deployment
 	if err := op.helmService.DeleteDeployment(ctx, clusterID, config.LoggingOperatorReleaseName); err != nil {
 		logger.Info(fmt.Sprintf("failed to delete feature deployment: %q", config.LoggingOperatorReleaseName))
 
 		return errors.WrapIf(err, fmt.Sprintf("failed to uninstall deployment: %q", config.LoggingOperatorReleaseName))
 	}
 
+	// delete logging deployment
+	if err := op.helmService.DeleteDeployment(ctx, clusterID, config.LoggingReleaseName); err != nil {
+		logger.Info(fmt.Sprintf("failed to delete feature deployment: %q", config.LoggingReleaseName))
+
+		return errors.WrapIf(err, fmt.Sprintf("failed to uninstall deployment: %q", config.LoggingReleaseName))
+	}
+
 	// remove TLS secret from Vault
-	if err := op.deleteTLSSecret(ctx, clusterID); err != nil {
+	if err := op.deleteTLSSecret(ctx, clusterID); err != nil && !isSecretNotFoundError(err) {
 		return errors.WrapIf(err, "failed to delete TLS secret from Vault")
 	}
 
@@ -211,10 +218,13 @@ func (op FeatureOperator) installLoggingOperatorLogging(ctx context.Context, clu
 	var chartValues = loggingOperatorLoggingValues{
 		// todo (colin): extend me
 		Tls: tlsValues{
-			Enabled:             spec.Settings.Tls,
-			FluentdSecretName:   fluentdSecretName,
-			FluentbitSecretName: fluentbitSecretName,
+			Enabled: spec.Settings.Tls,
 		},
+	}
+
+	if spec.Settings.Tls {
+		chartValues.Tls.FluentdSecretName = fluentdSecretName
+		chartValues.Tls.FluentbitSecretName = fluentbitSecretName
 	}
 
 	valuesBytes, err := json.Marshal(chartValues)

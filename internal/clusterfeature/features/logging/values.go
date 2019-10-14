@@ -24,7 +24,7 @@ type loggingOperatorLoggingValues struct {
 }
 
 type tlsValues struct {
-	Enabled             bool `json:"enabled" mapstructure:"enabled"`
+	Enabled             bool   `json:"enabled" mapstructure:"enabled"`
 	FluentdSecretName   string `json:"fluentdSecretName" mapstructure:"fluentdSecretName"`
 	FluentbitSecretName string `json:"fluentbitSecretName" mapstructure:"fluentbitSecretName"`
 }
