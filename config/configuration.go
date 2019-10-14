@@ -197,6 +197,8 @@ const (
 	LoggingLokiChartVersionKey     = "feature.logging.loki.chartVersion"
 	LoggingChartKey                = "feature.logging.chart"
 	LoggingChartVersionKey         = "feature.logging.chartVersion"
+	LoggingGrafanaChartKey         = "feature.logging.grafanaChart"
+	LoggingGrafanaVersionKey       = "feature.logging.grafanaVersion"
 )
 
 // Init initializes the configurations
@@ -389,6 +391,8 @@ func init() {
 	viper.SetDefault(LoggingLokiChartVersionKey, "0.16.0")
 	viper.SetDefault(LoggingChartKey, "banzaicloud-stable/logging-operator-logging")
 	viper.SetDefault(LoggingChartVersionKey, "2.1.0")
+	viper.SetDefault(LoggingGrafanaChartKey, "stable/grafana")
+	viper.SetDefault(LoggingGrafanaVersionKey, "3.10.1")
 
 	// Find and read the config file
 	if err := viper.ReadInConfig(); err != nil {

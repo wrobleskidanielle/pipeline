@@ -16,21 +16,26 @@ package logging
 
 import (
 	"context"
+	"fmt"
 
 	"emperror.dev/errors"
+
+	"github.com/banzaicloud/pipeline/internal/cluster/endpoints"
 	"github.com/banzaicloud/pipeline/internal/clusterfeature"
 	"github.com/banzaicloud/pipeline/internal/clusterfeature/clusterfeatureadapter"
 	"github.com/banzaicloud/pipeline/internal/clusterfeature/features"
 	"github.com/banzaicloud/pipeline/internal/common"
+	pkgHelm "github.com/banzaicloud/pipeline/pkg/helm"
 )
 
 type FeatureManager struct {
-	clusterGetter  clusterfeatureadapter.ClusterGetter
-	config         Configuration
-	secretStore    features.SecretStore
-	grafanaService features.GrafanaSecretService
-	helmService    features.HelmService
-	logger         common.Logger
+	clusterGetter    clusterfeatureadapter.ClusterGetter
+	config           Configuration
+	secretStore      features.SecretStore
+	grafanaService   features.GrafanaSecretService
+	helmService      features.HelmService
+	endpointsService endpoints.EndpointService
+	logger           common.Logger
 }
 
 // NewVaultFeatureManager builds a new feature manager component
@@ -39,16 +44,18 @@ func MakeFeatureManager(
 	config Configuration,
 	secretStore features.SecretStore,
 	helmService features.HelmService,
+	endpointsService endpoints.EndpointService,
 	logger common.Logger,
 ) FeatureManager {
-	grafanaService := features.NewGrafanaSecretService(config.grafanaAdminUsername, secretStore, logger)
+	grafanaService := features.NewGrafanaSecretService(config.grafana.adminUsername, secretStore, logger)
 	return FeatureManager{
-		clusterGetter:  clusterGetter,
-		config:         config,
-		secretStore:    secretStore,
-		grafanaService: grafanaService,
-		helmService:    helmService,
-		logger:         logger,
+		clusterGetter:    clusterGetter,
+		config:           config,
+		secretStore:      secretStore,
+		grafanaService:   grafanaService,
+		helmService:      helmService,
+		endpointsService: endpointsService,
+		logger:           logger,
 	}
 }
 
@@ -116,6 +123,7 @@ func (m FeatureManager) PrepareSpec(ctx context.Context, spec clusterfeature.Fea
 
 func (m FeatureManager) getGrafanaOutput(ctx context.Context, spec baseComponentSpec, clusterID uint) (obj, error) {
 	if spec.Enabled {
+		// get secret
 		var grafanaSecretID = spec.SecretId
 		var err error
 		if grafanaSecretID == "" {
@@ -126,9 +134,37 @@ func (m FeatureManager) getGrafanaOutput(ctx context.Context, spec baseComponent
 			}
 		}
 
-		// todo (colin): get Grafana url and version
+		// get version
+		version, err := m.getDeploymentVersion(ctx, clusterID, grafanaReleaseName)
+		if err != nil {
+			return nil, errors.WrapIf(err, "failed to get Grafana deployment")
+		}
+
+		// get url
+		var url string
+		if spec.Public.Enabled {
+			cl, err := m.clusterGetter.GetClusterByIDOnly(ctx, clusterID)
+			if err != nil {
+				return nil, errors.WrapIf(err, "failed to get cluster")
+			}
+
+			kubeConfig, err := cl.GetK8sConfig()
+			if err != nil {
+				return nil, errors.WrapIf(err, "failed to get K8S config")
+			}
+
+			endp, err := m.endpointsService.List(kubeConfig, grafanaReleaseName)
+			if err != nil {
+				m.logger.Warn(fmt.Sprintf("failed to list endpoints: %s", err.Error()))
+			}
+
+			url = getEndpointUrl(endp, spec.Public.Path)
+		}
+
 		return obj{
 			"secretId": grafanaSecretID,
+			"url":      url,
+			"version":  version,
 		}, nil
 	}
 
@@ -138,19 +174,32 @@ func (m FeatureManager) getGrafanaOutput(ctx context.Context, spec baseComponent
 func (m FeatureManager) getLokiOutput(ctx context.Context, lokiSpec baseComponentSpec, clusterID uint) (obj, error) {
 	var output obj
 	if lokiSpec.Enabled {
-		lokiValues, err := m.helmService.GetDeployment(ctx, clusterID, lokiReleaseName)
+		version, err := m.getDeploymentVersion(ctx, clusterID, lokiReleaseName)
 		if err != nil {
 			return nil, errors.WrapIf(err, "failed to get loki deployment values")
 		}
 
-		if image, ok := lokiValues.Values["image"].(map[string]interface{}); ok {
-			output = obj{
-				"version": image["tag"],
-			}
+		output = obj{
+			"version": version,
 		}
 	}
 
 	return output, nil
+}
+
+func (m FeatureManager) getDeploymentVersion(ctx context.Context, clusterID uint, releaseName string) (string, error) {
+	values, err := m.helmService.GetDeployment(ctx, clusterID, releaseName)
+	if err != nil {
+		return "", errors.WrapIf(err, "failed to get loki deployment values")
+	}
+
+	var version string
+	if image, ok := values.Values["image"].(map[string]interface{}); ok {
+		if v, ok := image["tag"].(string); ok {
+			version = v
+		}
+	}
+	return version, nil
 }
 
 func (m FeatureManager) getTLSOutput(ctx context.Context, clusterID uint, isEnabled bool) (obj, error) {
@@ -167,4 +216,15 @@ func (m FeatureManager) getTLSOutput(ctx context.Context, clusterID uint, isEnab
 	}
 
 	return nil, nil
+}
+
+func getEndpointUrl(endpoints []*pkgHelm.EndpointItem, path string) string {
+	for _, ep := range endpoints {
+		for _, url := range ep.EndPointURLs {
+			if url.Path == path {
+				return url.URL
+			}
+		}
+	}
+	return ""
 }

@@ -32,10 +32,15 @@ type loggingFeatureSpec struct {
 }
 
 type baseComponentSpec struct {
-	Enabled  bool   `json:"enabled" mapstructure:"enabled"`
-	Domain   string `json:"domain" mapstructure:"domain"`
-	Path     string `json:"path" mapstructure:"path"`
-	SecretId string `json:"secretId" mapstructure:"secretId"`
+	Enabled  bool       `json:"enabled" mapstructure:"enabled"`
+	Public   publicSpec `json:"public" mapstructure:"public"`
+	SecretId string     `json:"secretId" mapstructure:"secretId"`
+}
+
+type publicSpec struct {
+	Enabled bool   `json:"enabled" mapstructure:"enabled"`
+	Domain  string `json:"domain" mapstructure:"domain"`
+	Path    string `json:"path" mapstructure:"path"`
 }
 
 type settingsSpec struct {
@@ -67,14 +72,14 @@ func (s providerSpec) Validate() error {
 func (s baseComponentSpec) Validate(componentType string) error {
 	if s.Enabled {
 
-		if s.Path == "" {
+		if s.Public.Path == "" {
 			return requiredFieldError{fieldName: fmt.Sprintf("%s path", componentType)}
 		}
 
-		if s.Domain != "" {
-			err := dns.ValidateSubdomain(s.Domain)
+		if s.Public.Domain != "" {
+			err := dns.ValidateSubdomain(s.Public.Domain)
 			if err != nil {
-				return errors.Append(err, invalidDomainError{domain: s.Domain})
+				return errors.Append(err, invalidDomainError{domain: s.Public.Domain})
 			}
 		}
 	}

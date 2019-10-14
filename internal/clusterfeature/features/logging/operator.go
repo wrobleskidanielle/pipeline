@@ -51,7 +51,7 @@ func MakeFeatureOperator(
 	config Configuration,
 	logger common.Logger,
 ) FeatureOperator {
-	grafanaService := features.NewGrafanaSecretService(config.grafanaAdminUsername, secretStore, logger)
+	grafanaService := features.NewGrafanaSecretService(config.grafana.adminUsername, secretStore, logger)
 	return FeatureOperator{
 		clusterGetter:  clusterGetter,
 		clusterService: clusterService,
@@ -106,11 +106,17 @@ func (op FeatureOperator) Apply(ctx context.Context, clusterID uint, spec cluste
 		}
 	}
 
-	// generate Grafana secret
-	//grafanaSecretID, err := op.generateGrafanaSecret(ctx, cl, boundSpec)
-	_, err = op.generateGrafanaSecret(ctx, cl, boundSpec)
-	if err != nil {
-		return errors.WrapIf(err, "failed to generate Grafana secret")
+	// install Grafana
+	if boundSpec.Grafana.Enabled {
+		// get Grafana secret
+		grafanaSecretID, err := op.getGrafanaSecret(ctx, cl, boundSpec)
+		if err != nil {
+			return errors.WrapIf(err, "failed to generate Grafana secret")
+		}
+
+		if err := op.installGrafana(ctx, boundSpec, cl, grafanaSecretID); err != nil {
+			return errors.WrapIf(err, "failed to install Grafana")
+		}
 	}
 
 	// install Loki
@@ -199,7 +205,7 @@ func (op FeatureOperator) installLoggingOperator(ctx context.Context, clusterID 
 
 	valuesBytes, err := json.Marshal(chartValues)
 	if err != nil {
-		logger.Debug("failed to marshal chartValues")
+		op.logger.Debug("failed to marshal chartValues")
 		return errors.WrapIf(err, "failed to decode chartValues")
 	}
 
@@ -229,7 +235,7 @@ func (op FeatureOperator) installLoggingOperatorLogging(ctx context.Context, clu
 
 	valuesBytes, err := json.Marshal(chartValues)
 	if err != nil {
-		logger.Debug("failed to marshal chartValues")
+		op.logger.Debug("failed to marshal chartValues")
 		return errors.WrapIf(err, "failed to decode chartValues")
 	}
 
@@ -340,22 +346,93 @@ func (op FeatureOperator) ensureOrgIDInContext(ctx context.Context, clusterID ui
 	return ctx, nil
 }
 
+func (op FeatureOperator) getGrafanaSecret(
+	ctx context.Context,
+	cluster clusterfeatureadapter.Cluster,
+	spec loggingFeatureSpec,
+) (string, error) {
+	var secretID = spec.Grafana.SecretId
+	if secretID == "" {
+		// check Grafana secret exists
+		existingSecretID, err := op.secretStore.GetIDByName(ctx, op.grafanaService.GetGrafanaSecretName(cluster.GetID()))
+		if existingSecretID != "" {
+			op.logger.Debug("Grafana secret already exists")
+			return existingSecretID, nil
+		} else if isSecretNotFoundError(err) {
+			// generate and store Grafana secret
+			secretID, err = op.generateGrafanaSecret(ctx, cluster, spec)
+			if err != nil {
+				return "", errors.WrapIf(err, "failed to create Grafana secret")
+			}
+		} else {
+			return "", errors.WrapIf(err, "error during getting Grafana secret")
+		}
+	}
+
+	return secretID, nil
+}
+
 func (op FeatureOperator) generateGrafanaSecret(ctx context.Context, cluster clusterfeatureadapter.Cluster, boundSpec loggingFeatureSpec) (string, error) {
-	var clusterID = cluster.GetID()
-	var orgID = cluster.GetOrganizationId()
-
-	releaseSecretTag := getReleaseSecretTag()
-
 	var grafanaSecretID = boundSpec.Grafana.SecretId
 	var err error
 	if boundSpec.Grafana.Enabled && grafanaSecretID == "" {
 		grafanaSecretID, err = op.grafanaService.GenerateSecret(
 			ctx,
-			clusterID,
-			orgID,
-			append(getSecretClusterTags(cluster), releaseSecretTag),
+			cluster.GetID(),
+			cluster.GetOrganizationId(),
+			append(getSecretClusterTags(cluster), getGrafanaReleaseSecretTag()),
 		)
 	}
 
 	return grafanaSecretID, err
+}
+
+func (op FeatureOperator) installGrafana(ctx context.Context, spec loggingFeatureSpec, cluster clusterfeatureadapter.Cluster, grafanaSecretID string) error {
+	var tolerationService = features.NewTolerationService(op.config.headNodepoolName)
+	var affinityService = features.NewAffinityService(op.config.headNodepoolName, cluster)
+	headNodeAffinity := affinityService.GetHeadNodeAffinity()
+	tolerations := tolerationService.GetHeadNodeTolerations()
+
+	var grafanaUser string
+	var grafanaPass string
+	if spec.Grafana.Enabled {
+		grafanaSecret, err := op.secretStore.GetSecretValues(ctx, grafanaSecretID)
+		if err != nil {
+			return errors.WrapIf(err, "failed to get Grafana secret")
+		}
+		grafanaUser = grafanaSecret[pkgSecret.Username]
+		grafanaPass = grafanaSecret[pkgSecret.Password]
+	}
+
+	var chartValues = grafanaValues{
+		Ingress: ingressValues{
+			Enabled: spec.Grafana.Public.Enabled,
+			Hosts:   []string{spec.Grafana.Public.Domain},
+			Path:    spec.Grafana.Public.Path,
+		},
+		AdminUser:     grafanaUser,
+		AdminPassword: grafanaPass,
+		GrafanaIni: grafanaIniValues{Server: grafanaIniServerValues{
+			RootUrl:          fmt.Sprintf("http://0.0.0.0:3000%s/", spec.Grafana.Public.Path),
+			ServeFromSubPath: true,
+		}},
+		Affinity:    headNodeAffinity,
+		Tolerations: tolerations,
+	}
+
+	valuesBytes, err := json.Marshal(chartValues)
+	if err != nil {
+		op.logger.Debug("failed to marshal chartValues")
+		return errors.WrapIf(err, "failed to decode chartValues")
+	}
+
+	return op.helmService.ApplyDeployment(
+		ctx,
+		cluster.GetID(),
+		op.config.pipelineSystemNamespace,
+		op.config.grafana.chartName,
+		grafanaReleaseName,
+		valuesBytes,
+		op.config.grafana.chartVersion,
+	)
 }

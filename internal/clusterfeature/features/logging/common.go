@@ -18,7 +18,6 @@ import (
 	"fmt"
 
 	"emperror.dev/errors"
-	"github.com/banzaicloud/pipeline/config"
 	"github.com/banzaicloud/pipeline/internal/clusterfeature/clusterfeatureadapter"
 	"github.com/banzaicloud/pipeline/secret"
 )
@@ -33,6 +32,7 @@ const (
 	fluentbitSecretName = "logging-operator-fluentbit-secret"
 	fluentdSecretName   = "logging-operator-fluentd-secret"
 	lokiReleaseName     = "loki"
+	grafanaReleaseName  = "grafana"
 
 	kubeCaCertKey  = "ca.crt"
 	kubeTlsCertKey = "tls.crt"
@@ -45,8 +45,8 @@ func getTLSSecretName(clusterID uint) string {
 	return fmt.Sprintf("logging-tls-%d", clusterID)
 }
 
-func getReleaseSecretTag() string {
-	return fmt.Sprintf("release:%s", config.LoggingOperatorReleaseName)
+func getGrafanaReleaseSecretTag() string {
+	return fmt.Sprintf("release:%s", grafanaReleaseName)
 }
 
 func getSecretClusterTags(cluster clusterfeatureadapter.Cluster) []string {

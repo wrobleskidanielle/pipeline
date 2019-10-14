@@ -262,3 +262,5 @@ chartVersion="1.0.1"
 [feature.logging]
 chart="banzaicloud-stable/logging-operator"
 chartVersion="2.1.1"
+grafanaChart="stable/grafana"
+grafanaVersion="3.10.1"

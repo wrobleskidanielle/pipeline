@@ -28,3 +28,28 @@ type tlsValues struct {
 	FluentdSecretName   string `json:"fluentdSecretName" mapstructure:"fluentdSecretName"`
 	FluentbitSecretName string `json:"fluentbitSecretName" mapstructure:"fluentbitSecretName"`
 }
+
+type grafanaValues struct {
+	Ingress       ingressValues    `json:"ingress"`
+	AdminUser     string           `json:"adminUser"`
+	AdminPassword string           `json:"adminPassword"`
+	GrafanaIni    grafanaIniValues `json:"grafana.ini"`
+	Affinity      interface{}      `json:"affinity"`
+	Tolerations   interface{}      `json:"tolerations"`
+}
+
+type ingressValues struct {
+	Enabled bool     `json:"enabled"`
+	Hosts   []string `json:"hosts"`
+	Path    string   `json:"path,omitempty"`
+	Paths   []string `json:"paths,omitempty"`
+}
+
+type grafanaIniValues struct {
+	Server grafanaIniServerValues `json:"server"`
+}
+
+type grafanaIniServerValues struct {
+	RootUrl          string `json:"root_url"`
+	ServeFromSubPath bool   `json:"serve_from_sub_path"`
+}
