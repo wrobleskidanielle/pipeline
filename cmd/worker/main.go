@@ -311,7 +311,7 @@ func main() {
 				securityscan.MakeFeatureOperator(clusterGetter, clusterService, helmService, secretStore, logger),
 				featureVault.MakeFeatureOperator(clusterGetter, clusterService, helmService, kubernetesService, secretStore, logger),
 				featureMonitoring.MakeFeatureOperator(clusterGetter, clusterService, helmService, monitorConfiguration, logger, secretStore),
-				featureLogging.MakeFeatureOperator(clusterGetter, clusterService, helmService, secretStore, loggingConfig, logger),
+				featureLogging.MakeFeatureOperator(clusterGetter, clusterService, helmService, secretStore, kubernetesService, loggingConfig, logger),
 			})
 
 			registerClusterFeatureWorkflows(featureOperatorRegistry, featureRepository)

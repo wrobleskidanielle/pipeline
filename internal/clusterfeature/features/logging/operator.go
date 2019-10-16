@@ -20,6 +20,8 @@ import (
 	"fmt"
 
 	"emperror.dev/errors"
+	// logging "github.com/banzaicloud/logging-operator"
+
 	"github.com/banzaicloud/pipeline/auth"
 	pkgCluster "github.com/banzaicloud/pipeline/cluster"
 	"github.com/banzaicloud/pipeline/config"
@@ -33,13 +35,14 @@ import (
 
 // FeatureOperator implements the Logging feature operator
 type FeatureOperator struct {
-	clusterGetter  clusterfeatureadapter.ClusterGetter
-	clusterService clusterfeature.ClusterService
-	helmService    features.HelmService
-	secretStore    features.SecretStore
-	grafanaService features.GrafanaSecretService
-	config         Configuration
-	logger         common.Logger
+	clusterGetter     clusterfeatureadapter.ClusterGetter
+	clusterService    clusterfeature.ClusterService
+	helmService       features.HelmService
+	secretStore       features.SecretStore
+	grafanaService    features.GrafanaSecretService
+	kubernetesService features.KubernetesService
+	config            Configuration
+	logger            common.Logger
 }
 
 // MakeFeatureOperator returns a Logging feature operator
@@ -48,18 +51,20 @@ func MakeFeatureOperator(
 	clusterService clusterfeature.ClusterService,
 	helmService features.HelmService,
 	secretStore features.SecretStore,
+	kubernetesService features.KubernetesService,
 	config Configuration,
 	logger common.Logger,
 ) FeatureOperator {
 	grafanaService := features.NewGrafanaSecretService(config.grafana.adminUsername, secretStore, logger)
 	return FeatureOperator{
-		clusterGetter:  clusterGetter,
-		clusterService: clusterService,
-		helmService:    helmService,
-		secretStore:    secretStore,
-		grafanaService: grafanaService,
-		config:         config,
-		logger:         logger,
+		clusterGetter:     clusterGetter,
+		clusterService:    clusterService,
+		helmService:       helmService,
+		secretStore:       secretStore,
+		grafanaService:    grafanaService,
+		kubernetesService: kubernetesService,
+		config:            config,
+		logger:            logger,
 	}
 }
 
@@ -104,6 +109,10 @@ func (op FeatureOperator) Apply(ctx context.Context, clusterID uint, spec cluste
 		if err := op.installTLSSecretsToCluster(ctx, cl); err != nil {
 			return errors.WrapIf(err, "failed to install TLS secret")
 		}
+	}
+
+	if boundSpec.ClusterOutput.Enabled {
+		_ = op.setupClusterOutput(ctx, cl, boundSpec.ClusterOutput)
 	}
 
 	// install Grafana
@@ -435,4 +444,26 @@ func (op FeatureOperator) installGrafana(ctx context.Context, spec loggingFeatur
 		valuesBytes,
 		op.config.grafana.chartVersion,
 	)
+}
+
+func (op FeatureOperator) setupClusterOutput(ctx context.Context, cl clusterfeatureadapter.Cluster, spec clusterOutputSpec) error {
+	if spec.Enabled {
+
+		//var resource logging.ClusterOutput
+		//var resourceRef = v1.ObjectReference{
+		//	Kind:       "ClusterOutput",
+		//	Namespace:  "pipeline-system",
+		//	Name:       "s3-output",
+		//	APIVersion: "logging.banzaicloud.io/v1beta1",
+		//}
+		//if err := op.kubernetesService.GetObject(ctx, cl.GetID(), resourceRef, &resource); err != nil {
+		//	fmt.Println("err", err.Error())
+		//	return errors.WrapIf(err, "failed to get Kubernetes object")
+		//}
+		//
+		//fmt.Println("asd")
+
+	}
+
+	return nil
 }

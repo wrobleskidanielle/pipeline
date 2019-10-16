@@ -41,6 +41,10 @@ const (
 
 type obj = map[string]interface{}
 
+func init() {
+	//SchemeBuilder.Register(&ClusterOutput{}, &ClusterOutputList{})
+}
+
 func getTLSSecretName(clusterID uint) string {
 	return fmt.Sprintf("logging-tls-%d", clusterID)
 }

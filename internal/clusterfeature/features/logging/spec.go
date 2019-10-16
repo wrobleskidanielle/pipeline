@@ -54,7 +54,7 @@ type clusterOutputSpec struct {
 }
 
 type providerSpec struct {
-	Name     string `json:"name" mapstructure:"enabled"`
+	Name     string `json:"name" mapstructure:"name"`
 	Bucket   string `json:"bucket" mapstructure:"bucket"`
 	SecretId string `json:"secretId" mapstructure:"secretId"`
 }
