@@ -138,6 +138,7 @@ require (
 	github.com/uber/jaeger-client-go v2.17.0+incompatible // indirect
 	github.com/uber/jaeger-lib v2.0.0+incompatible // indirect
 	github.com/uber/tchannel-go v1.12.0 // indirect
+	github.com/vmware/govmomi v0.21.0
 	github.com/xanzy/go-gitlab v0.16.2-0.20190325100843-bbb1af7187c8
 	github.com/xlab/handysort v0.0.0-20150421192137-fb3537ed64a1 // indirect
 	go.opencensus.io v0.22.0
