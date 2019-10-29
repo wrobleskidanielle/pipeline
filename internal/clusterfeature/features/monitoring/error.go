@@ -12,13 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package endpoints
+package monitoring
 
-import (
-	pkgHelm "github.com/banzaicloud/pipeline/pkg/helm"
-)
+import "fmt"
 
-type EndpointService interface {
-	List(kubeConfig []byte, releaseName string) ([]*pkgHelm.EndpointItem, error)
-	GetServiceUrl(kubeConfig []byte, serviceName string, namespace string) (string, error)
+type requiredFieldError struct {
+	fieldName string
+}
+
+type invalidIngressHostError struct {
+	hostType string
+}
+
+type cannotDisabledError struct {
+	fieldName string
+}
+
+func (e invalidIngressHostError) Error() string {
+	return fmt.Sprintf("invalid %s ingress host", e.hostType)
+}
+
+func (e requiredFieldError) Error() string {
+	return fmt.Sprintf("%q cannot be empty", e.fieldName)
+}
+
+func (e cannotDisabledError) Error() string {
+	return fmt.Sprintf("%s cannot be disabled", e.fieldName)
 }

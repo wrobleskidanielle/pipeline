@@ -19,12 +19,16 @@ type outputAlertmanager struct {
 }
 
 func newAlertmanagerOutputHelper(
+	kubeConfig []byte,
 	spec featureSpec,
 ) outputAlertmanager {
 	return outputAlertmanager{
 		baseOutput: baseOutput{
-			ingress: spec.Alertmanager.Public,
-			enabled: spec.Alertmanager.Enabled,
+			ingress:              spec.Alertmanager.Ingress.baseIngressSpec,
+			secretID:             spec.Alertmanager.Ingress.SecretId,
+			enabled:              spec.Alertmanager.Enabled,
+			k8sConfig:            kubeConfig,
+			pipelineSysNamespace: pipelineSysNamespace,
 		},
 	}
 }
@@ -42,5 +46,9 @@ func (outputAlertmanager) getDeploymentValueParentKey() string {
 }
 
 func (outputAlertmanager) getGeneratedSecretName(clusterID uint) string {
-	return ""
+	return getAlertmanagerSecretName(clusterID)
+}
+
+func (outputAlertmanager) getServiceName() string {
+	return "monitor-prometheus-operato-alertmanager"
 }

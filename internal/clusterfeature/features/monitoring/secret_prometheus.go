@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package endpoints
+package monitoring
 
-import (
-	pkgHelm "github.com/banzaicloud/pipeline/pkg/helm"
-)
+type prometheusSecretInfoer struct{ baseSecretInfoer }
 
-type EndpointService interface {
-	List(kubeConfig []byte, releaseName string) ([]*pkgHelm.EndpointItem, error)
-	GetServiceUrl(kubeConfig []byte, serviceName string, namespace string) (string, error)
+func (prometheusSecretInfoer) name() string {
+	return "Prometheus"
+}
+
+func (i prometheusSecretInfoer) generatedSecretName() string {
+	return getPrometheusSecretName(i.clusterID)
 }
