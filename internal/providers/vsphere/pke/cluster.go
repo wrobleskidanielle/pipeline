@@ -21,24 +21,29 @@ import (
 	intPKE "github.com/banzaicloud/pipeline/internal/pke"
 )
 
-const PKEOnVSphere = "pke-on-vsphere"
+const PKEOnVsphere = "pke-on-vsphere"
 
 type NodePool struct {
-	Count uint
-	VCPU  uint
-	RamMB uint
-	Max   uint
-	Name  string
-	Roles []string
+	CreatedBy uint
+	Count     int
+	VCPU      int
+	RamMB     int
+	Name      string
+	Roles     []string
 }
 
-type PKEOnVSphereCluster struct {
+func (np NodePool) InstanceType() string {
+	return fmt.Sprintf("%dvcpu-%dmb", np.VCPU, np.RamMB)
+}
+
+type PKEOnVsphereCluster struct {
 	intCluster.ClusterBase
 
 	NodePools        []NodePool
 	ResourceGroup    string
 	Kubernetes       intPKE.Kubernetes
 	ActiveWorkflowID string
+	HTTPProxy        intPKE.HTTPProxy
 
 	Monitoring   bool
 	Logging      bool
@@ -46,7 +51,7 @@ type PKEOnVSphereCluster struct {
 	TtlMinutes   uint
 }
 
-func (c PKEOnVSphereCluster) HasActiveWorkflow() bool {
+func (c PKEOnVsphereCluster) HasActiveWorkflow() bool {
 	return c.ActiveWorkflowID != ""
 }
 

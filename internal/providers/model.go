@@ -25,6 +25,7 @@ import (
 	"github.com/banzaicloud/pipeline/internal/providers/google"
 	"github.com/banzaicloud/pipeline/internal/providers/oracle"
 	"github.com/banzaicloud/pipeline/internal/providers/pke"
+	vsphere "github.com/banzaicloud/pipeline/internal/providers/vsphere/pke/adapter"
 )
 
 // Migrate runs migrations for cloud provider services.
@@ -54,6 +55,10 @@ func Migrate(db *gorm.DB, logger logrus.FieldLogger) error {
 	}
 
 	if err := adapter.Migrate(db, logger); err != nil {
+		return err
+	}
+
+	if err := vsphere.Migrate(db, logger); err != nil {
 		return err
 	}
 

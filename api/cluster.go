@@ -38,7 +38,8 @@ import (
 	intCluster "github.com/banzaicloud/pipeline/internal/cluster"
 	"github.com/banzaicloud/pipeline/internal/cluster/resourcesummary"
 	intClusterGroup "github.com/banzaicloud/pipeline/internal/clustergroup"
-	"github.com/banzaicloud/pipeline/internal/providers/azure/pke/driver"
+	azureDriver "github.com/banzaicloud/pipeline/internal/providers/azure/pke/driver"
+	vsphereDriver "github.com/banzaicloud/pipeline/internal/providers/vsphere/pke/driver"
 	pkgCluster "github.com/banzaicloud/pipeline/pkg/cluster"
 	pkgCommon "github.com/banzaicloud/pipeline/pkg/common"
 	"github.com/banzaicloud/pipeline/pkg/k8sclient"
@@ -65,15 +66,16 @@ type ClusterAPI struct {
 }
 
 type ClusterCreators struct {
-	PKEOnAzure driver.AzurePKEClusterCreator
+	PKEOnAzure   azureDriver.AzurePKEClusterCreator
+	PKEOnVsphere vsphereDriver.VspherePKEClusterCreator
 }
 
 type ClusterDeleters struct {
-	PKEOnAzure driver.AzurePKEClusterDeleter
+	PKEOnAzure azureDriver.AzurePKEClusterDeleter
 }
 
 type ClusterUpdaters struct {
-	PKEOnAzure driver.AzurePKEClusterUpdater
+	PKEOnAzure azureDriver.AzurePKEClusterUpdater
 }
 
 // NewClusterAPI returns a new ClusterAPI instance.

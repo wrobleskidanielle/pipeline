@@ -24,6 +24,7 @@ import (
 
 	"github.com/banzaicloud/pipeline/cluster"
 	"github.com/banzaicloud/pipeline/internal/cluster/clustersetup"
+	intPKE "github.com/banzaicloud/pipeline/internal/pke"
 	"github.com/banzaicloud/pipeline/internal/providers/pke/pkeworkflow"
 	pkgCluster "github.com/banzaicloud/pipeline/pkg/cluster"
 )
@@ -44,6 +45,7 @@ type CreateClusterWorkflowInput struct {
 	OIDCEnabled      bool
 	PostHooks        pkgCluster.PostHooks
 	Nodes            []Node
+	HTTPProxy        intPKE.HTTPProxy
 }
 
 func CreateClusterWorkflow(ctx workflow.Context, input CreateClusterWorkflowInput) error {
@@ -53,11 +55,7 @@ func CreateClusterWorkflow(ctx workflow.Context, input CreateClusterWorkflowInpu
 		ScheduleToCloseTimeout: 15 * time.Minute,
 		WaitForCancellation:    true,
 	}
-	cwo := workflow.ChildWorkflowOptions{
-		ExecutionStartToCloseTimeout: 30 * time.Minute,
-		TaskStartToCloseTimeout:      40 * time.Minute,
-	}
-	ctx = workflow.WithChildOptions(workflow.WithActivityOptions(ctx, ao), cwo)
+	ctx = workflow.WithActivityOptions(ctx, ao)
 
 	// Generate CA certificates
 	{
@@ -88,6 +86,9 @@ func CreateClusterWorkflow(ctx workflow.Context, input CreateClusterWorkflowInpu
 		futures := make([]workflow.Future, len(input.Nodes))
 
 		for i, node := range input.Nodes {
+			if node.UserDataScriptParams == nil {
+				node.UserDataScriptParams = make(map[string]string)
+			}
 			activityInput := CreateNodeActivityInput{
 				OrganizationID:   input.OrganizationID,
 				SecretID:         input.SecretID,

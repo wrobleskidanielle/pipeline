@@ -25,6 +25,7 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/banzaicloud/pipeline/internal/providers/pke/pkeworkflow/pkeworkflowadapter"
+	"github.com/ghodss/yaml"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
@@ -71,6 +72,7 @@ type Node struct {
 	UserDataScriptParams   map[string]string
 	UserDataScriptTemplate string
 	TemplateName           string
+	NodePoolName           string
 }
 
 // Execute performs the activity
@@ -79,12 +81,12 @@ func (a CreateNodeActivity) Execute(ctx context.Context, input CreateNodeActivit
 		"organization", input.OrganizationID,
 		"cluster", input.ClusterName,
 		"secret", input.SecretID,
-		"nodeName", input.Name,
+		"node", input.Name,
 	)
 
 	/*keyvals := []interface{}{
 		"cluster", input.ClusterName,
-		"nodeName", input.Node.Name,
+		"node", input.Node.Name,
 	}*/
 
 	logger.Info("create virtual machine")
@@ -112,7 +114,7 @@ func (a CreateNodeActivity) Execute(ctx context.Context, input CreateNodeActivit
 		return err
 	}
 
-	userData := encodeGuestinfo(userDataScript.String())
+	userData := encodeGuestinfo(generateCloudConfig(input.AdminUsername, input.SSHPublicKey, userDataScript.String()))
 
 	vmConfig := types.VirtualMachineConfigSpec{}
 	vmConfig.ExtraConfig = append(vmConfig.ExtraConfig,
@@ -219,4 +221,18 @@ func encodeGuestinfo(data string) string {
 	encoder.Close()
 
 	return buffer.String()
+}
+
+func generateCloudConfig(user, publicKey, script string) string {
+
+	data := map[string]interface{}{
+		"users": []map[string]interface{}{
+			map[string]interface{}{
+				"name":                user,
+				"ssh-authorized-keys": []string{publicKey}}},
+		"runcmd": []string{script},
+	}
+
+	out, _ := yaml.Marshal(data)
+	return "#cloud-config\n" + string(out)
 }

@@ -114,6 +114,8 @@ import (
 	"github.com/banzaicloud/pipeline/internal/platform/watermill"
 	azurePKEAdapter "github.com/banzaicloud/pipeline/internal/providers/azure/pke/adapter"
 	azurePKEDriver "github.com/banzaicloud/pipeline/internal/providers/azure/pke/driver"
+	vspherePKEAdapter "github.com/banzaicloud/pipeline/internal/providers/vsphere/pke/adapter"
+	vspherePKEDriver "github.com/banzaicloud/pipeline/internal/providers/vsphere/pke/driver"
 	anchore "github.com/banzaicloud/pipeline/internal/security"
 	pkgAuth "github.com/banzaicloud/pipeline/pkg/auth"
 	"github.com/banzaicloud/pipeline/pkg/ctxutil"
@@ -368,6 +370,7 @@ func main() {
 	cloudInfoClient := cloudinfo.NewClient(cloudInfoEndPoint, logrusLogger)
 
 	gormAzurePKEClusterStore := azurePKEAdapter.NewGORMAzurePKEClusterStore(db)
+	gormVspherePKEClusterStore := vspherePKEAdapter.NewGORMVspherePKEClusterStore(db)
 	clusterCreators := api.ClusterCreators{
 		PKEOnAzure: azurePKEDriver.MakeAzurePKEClusterCreator(
 			azurePKEDriver.ClusterCreatorConfig{
@@ -379,6 +382,18 @@ func main() {
 			authdriver.NewOrganizationGetter(db),
 			secret.Store,
 			gormAzurePKEClusterStore,
+			workflowClient,
+		),
+		PKEOnVsphere: vspherePKEDriver.MakeVspherePKEClusterCreator(
+			vspherePKEDriver.ClusterCreatorConfig{
+				OIDCIssuerURL:               oidcIssuerURL,
+				PipelineExternalURL:         externalBaseURL,
+				PipelineExternalURLInsecure: externalURLInsecure,
+			},
+			logrusLogger,
+			authdriver.NewOrganizationGetter(db),
+			secret.Store,
+			gormVspherePKEClusterStore,
 			workflowClient,
 		),
 	}
