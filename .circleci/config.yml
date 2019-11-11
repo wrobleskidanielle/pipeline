@@ -319,6 +319,7 @@ jobs:
                     name: Create version tag
                     command: |
                         git tag << pipeline.parameters.snapshot_version >>
+                        echo hello
             -
                 docker/check
             -
