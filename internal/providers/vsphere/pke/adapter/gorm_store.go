@@ -136,6 +136,9 @@ func fillClusterFromModel(cluster *pke.PKEOnVsphereCluster, model vspherePkeClus
 
 	cluster.Kubernetes = model.ProviderData.Kubernetes
 	cluster.ActiveWorkflowID = model.ProviderData.ActiveWorkflowID
+	cluster.Datastore = model.ProviderData.DatastoreName
+	cluster.Folder = model.ProviderData.FolderName
+	cluster.ResourcePool = model.ProviderData.ResourcePoolName
 
 	//cluster.HTTPProxy = model.HTTPProxy.toEntity()
 

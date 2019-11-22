@@ -40,7 +40,9 @@ type PKEOnVsphereCluster struct {
 	intCluster.ClusterBase
 
 	NodePools        []NodePool
-	ResourceGroup    string
+	ResourcePool     string
+	Datastore        string
+	Folder           string
 	Kubernetes       intPKE.Kubernetes
 	ActiveWorkflowID string
 	HTTPProxy        intPKE.HTTPProxy

@@ -23,14 +23,15 @@ import (
 
 	"emperror.dev/emperror"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 
 	"github.com/banzaicloud/pipeline/auth"
 	"github.com/banzaicloud/pipeline/config"
 	"github.com/banzaicloud/pipeline/internal/cluster"
 	"github.com/banzaicloud/pipeline/internal/platform/database"
-	"github.com/banzaicloud/pipeline/internal/providers/azure/pke/adapter"
-	pkeAzureAdapter "github.com/banzaicloud/pipeline/internal/providers/azure/pke/driver/commoncluster"
+	azureAdapter "github.com/banzaicloud/pipeline/internal/providers/azure/pke/adapter"
+	pkeAzureDriver "github.com/banzaicloud/pipeline/internal/providers/azure/pke/driver/commoncluster"
+	vsphereAdapter "github.com/banzaicloud/pipeline/internal/providers/vsphere/pke/adapter"
+	pkeVsphereDriver "github.com/banzaicloud/pipeline/internal/providers/vsphere/pke/driver/commoncluster"
 	"github.com/banzaicloud/pipeline/internal/secret/secrettype"
 	"github.com/banzaicloud/pipeline/model"
 	pkgCluster "github.com/banzaicloud/pipeline/pkg/cluster"
@@ -269,9 +270,9 @@ func GetCommonClusterFromModel(modelCluster *model.ClusterModel) (CommonCluster,
 	if modelCluster.Distribution == pkgCluster.PKE {
 		switch modelCluster.Cloud {
 		case pkgCluster.Azure:
-			return pkeAzureAdapter.MakeCommonClusterGetter(secret.Store, adapter.NewGORMAzurePKEClusterStore(db)).GetByID(modelCluster.ID)
+			return pkeAzureDriver.MakeCommonClusterGetter(secret.Store, azureAdapter.NewGORMAzurePKEClusterStore(db)).GetByID(modelCluster.ID)
 		case pkgCluster.Vsphere:
-			return pkeVsphereAdapter.MakeCommonClusterGetter(secret.Store, adapter.NewGORMVspherePKEClusterStore(db)).GetByID(modelCluster.ID)
+			return pkeVsphereDriver.MakeCommonClusterGetter(secret.Store, vsphereAdapter.NewGORMVspherePKEClusterStore(db)).GetByID(modelCluster.ID)
 		default:
 			return createCommonClusterWithDistributionFromModel(modelCluster)
 		}

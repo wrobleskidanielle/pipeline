@@ -226,11 +226,17 @@ func encodeGuestinfo(data string) string {
 func generateCloudConfig(user, publicKey, script string) string {
 
 	data := map[string]interface{}{
-		"users": []map[string]interface{}{
+		"runcmd": []string{script},
+	}
+
+	if publicKey != "" {
+		if user == "" {
+			user = "banzaicloud"
+		}
+		data["users"] = []map[string]interface{}{
 			map[string]interface{}{
 				"name":                user,
-				"ssh-authorized-keys": []string{publicKey}}},
-		"runcmd": []string{script},
+				"ssh-authorized-keys": []string{publicKey}}}
 	}
 
 	out, _ := yaml.Marshal(data)
