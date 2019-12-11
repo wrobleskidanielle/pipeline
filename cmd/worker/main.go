@@ -196,8 +196,9 @@ func main() {
 		}
 		global.SetDB(db)
 
+		klasters := clusteradapter.NewClusters(db)
 		clusterManager := cluster.NewManager(
-			clusteradapter.NewClusters(db),
+			klasters,
 			nil,
 			nil,
 			nil,
@@ -205,6 +206,7 @@ func main() {
 			nil,
 			logrusLogger,
 			errorHandler,
+			clusteradapter.NewStore(db, klasters),
 		)
 		tokenStore := bauth.NewVaultTokenStore("pipeline")
 		tokenManager := pkgAuth.NewTokenManager(
