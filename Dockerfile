@@ -21,6 +21,8 @@ RUN go mod download
 COPY . /build
 RUN make build-release
 
+RUN make bin/migrate
+
 
 FROM alpine:3.10 AS iamauth
 
@@ -47,5 +49,7 @@ COPY --from=builder /build/templates /templates/
 COPY --from=builder /build/build/release/pipeline /
 COPY --from=builder /build/build/release/worker /
 COPY --from=builder /build/build/release/pipelinectl /
+COPY --from=builder /build/database/migrations/ /migrations
+COPY --from=builder /build/bin/migrate* /
 
 CMD ["/pipeline"]
