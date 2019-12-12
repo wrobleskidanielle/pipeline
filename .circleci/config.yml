@@ -76,7 +76,6 @@ jobs:
                 restore_cache:
                     name: Restore Go build cache
                     keys:
-                        - build-cache-v1-{{ .Branch }}-{{ .Environment.CIRCLE_PREVIOUS_BUILD_NUM }}
                         - build-cache-v1-{{ .Branch }}
                         - build-cache-v1-master
                     paths:
@@ -214,7 +213,7 @@ jobs:
             -
                 save_cache:
                     name: Save Go build cache
-                    key: build-cache-v1-{{ .Branch }}-{{ .Environment.CIRCLE_BUILD_NUM }}
+                    key: build-cache-v1-{{ .Branch }}
                     paths:
                       - /tmp/go/cache
 
