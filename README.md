@@ -1,3 +1,4 @@
+[![Board Status](https://dev.azure.com/daniwrobleski/c11cf6e0-a425-4672-bb41-be625e32cb7b/9cec582e-ca4c-476e-bb91-c6b1153a01fd/_apis/work/boardbadge/48b3a4c8-1e3c-4617-a062-03c671368106)](https://dev.azure.com/daniwrobleski/c11cf6e0-a425-4672-bb41-be625e32cb7b/_boards/board/t/9cec582e-ca4c-476e-bb91-c6b1153a01fd/Microsoft.RequirementCategory)
  <p align="center"><img src="docs/images/pipeline_logo.png" width="260"></p>
     
 [![CircleCI](https://circleci.com/gh/banzaicloud/pipeline/tree/master.svg?style=shield)](https://circleci.com/gh/banzaicloud/pipeline/tree/master)
